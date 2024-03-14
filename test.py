@@ -8,6 +8,7 @@ sift = cv2.SIFT_create()
 keypoint1, descriptor1 = sift.detectAndCompute(img1, None)
 keypoint2, descriptor2 = sift.detectAndCompute(img1, None)
 
-# cv2.imshow('d', img)
+
+# cv2.imshow('d', img1)
 # cv2.waitKey()
 # cv2.destroyAllWindows()
