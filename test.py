@@ -42,14 +42,14 @@ def SIFT(img1, img2):
 #############################################################
 
 # Preprocessing
-def Estimation_E(matches_good, img1_kp, img2_kp):
+def Estimation_E(matches_good, img1_kp, img2_kp, K):
     query_idx = [match.queryIdx for match in matches_good]
     train_idx = [match.trainIdx for match in matches_good]
     p1 = np.float32([img1_kp[ind].pt for ind in query_idx]) # 픽셀 좌표
     p2 = np.float32([img2_kp[ind].pt for ind in train_idx])
 
     # Find Essential Matrix and Inliers with RANSAC, Intrinsic parameter
-    E, mask = cv2.findEssentialMat(p1, p2, method=cv2.RANSAC, focal=3092.8, pp=(2016, 1512), maxIters = 500, threshold=1) 
+    E, mask = cv2.findEssentialMat(p1, p2, K, method=cv2.RANSAC) 
     p1 = p1[mask.ravel()==1] # left image inlier
     p2 = p2[mask.ravel()==1] # right image inlier
 
@@ -113,10 +113,9 @@ def rescale_point(pts1, pts2, length):
     return a, b
 
 # intrinsic parameter K
-def initialize_CM(CM):
+def initialize_CM(CM, K):
     Rt0 = np.hstack((np.eye(3), np.zeros((3, 1))))
-    skew = 0.0215878
-    K = np.array([[3092.8, skew, 2016], [0, 3092.8, 1512], [0,0,1]])
+    # K = np.array([[3092.8, skew, 2016], [0, 3092.8, 1512], [0,0,1]])
     Rt1 = K @ CameraMatrix
     return Rt0, Rt1
 
@@ -157,13 +156,22 @@ def visualize_3d(p3ds):
     ax = plt.axes(projection='3d')
     ax.scatter3D(X, Y, Z, c='b', marker='o') 
     plt.show()
+
+def read_K(filename):
+    K = []
+    with open(filename, 'r') as file:
+        for line in file:
+            row = list(map(float, line.strip().split()))
+            K.append(row)        
+    return np.array(K)
     
 # run
+K = read_K('./data/K.txt')
 img1, img2 = load_image(img_path, img1_name, img2_name)
 matches_good, img1_kp, img2_kp = SIFT(img1, img2)
-E, p1_inlier, p2_inlier = Estimation_E(matches_good, img1_kp, img2_kp)
+E, p1_inlier, p2_inlier = Estimation_E(matches_good, img1_kp, img2_kp, K)
 CameraMatrix = EM_Decomposition(E, p1_inlier, p2_inlier)
-Rt0, Rt1 = initialize_CM(CameraMatrix)
+Rt0, Rt1 = initialize_CM(CameraMatrix, K)
 p1, p2 = rescale_point(p1_inlier, p2_inlier, len(p1_inlier))
 point3d = make_3dpoint(p1, p2)
 
