@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-
+import matplotlib.pyplot as plt
 
 # from calibrated_fivepoint import calibrated_fivepoint
 
@@ -71,3 +71,8 @@ Z = np.array([])
 X = np.concatenate((X, p3ds[0]))
 Y = np.concatenate((Y, p3ds[1]))
 Z = np.concatenate((Z, p3ds[2]))
+
+fig = plt.figure(figsize=(15,15))
+ax = plt.axes(projection='3d')
+ax.scatter(X, Y, Z, c='b', marker='o')
+plt.show()
