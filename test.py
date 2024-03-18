@@ -2,7 +2,7 @@ import cv2
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-###
+
 img_path = './data/'
 img1_name = '0000.JPG'
 img2_name = '0001.JPG'
