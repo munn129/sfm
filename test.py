@@ -7,9 +7,7 @@ img_path = './data/'
 img1_name = '0000.JPG'
 img2_name = '0001.JPG'
 
-#############################################################
 #################### Feature Extraction #####################
-#############################################################
 # Load image
 def load_image(img_path, img1_name, img2_name):
     img1 = cv2.imread(img_path + img1_name)
