@@ -1,7 +1,5 @@
 import numpy as np
 import cv2
-
-
 # from calibrated_fivepoint import calibrated_fivepoint
 
 filename = './data/K.txt'
@@ -50,24 +48,41 @@ retval, R, t, m = cv2.recoverPose(E, pts1, pts2)
 
 Rt0 = np.hstack((np.eye(3), np.zeros((3,1))))
 Rt1 = np.hstack((R,t))
-Rt1 = np.matmul(K, Rt1)
+Rt1 = K @ Rt1
 
-tri_pt1 = np.transpose(pts1)
-tri_pt2 = np.transpose(pts2)
+def homogeneous_point(pts1, pts2, length):
+    h_pt1 = [[]]
+    h_pt2 = [[]]
+    
+    for i in range(length):
+        tmp1 = pts1[i].flatten()
+        tmp1 = np.append(tmp1, 1)
+        h_pt1 = np.append(h_pt1, tmp1)
+        tmp2 = pts2[i].flatten()
+        tmp2 = np.append(tmp2, 1)
+        h_pt2 = np.append(h_pt2, tmp2)
+
+    h_pt1 = h_pt1.reshape((length), 3)
+    h_pt2 = h_pt2.reshape((length), 3)
+
+    return h_pt1, h_pt2
+
+pts1, pts2 = homogeneous_point(pts1, pts2, len(pts1))
+
+def linear_triangulation(Rt0, Rt1, pts1, pts2):
+    A = [pts1[1]*Rt0[2,:] - Rt0[1,:],
+         -(pts1[0]*Rt0[2,:] - Rt0[0,:]),
+         pts2[1]*Rt1[2,:] - Rt1[1,:],
+         -(pts2[0]*Rt1[2,:] - Rt1[0,:])]
+    
+    A = np.array(A).reshape((4,4))
+    AA = A.T @ A
+    U, S, Vt = np.linalg.svd(AA)
+
+    return Vt[3,0:3]/Vt[3,3]
 
 p3ds = []
-
-for pt1, pt2 in zip(tri_pt1, tri_pt2):
-    p3d = cv2.triangulatePoints(Rt0, Rt1, tri_pt1, tri_pt2)
-    p3d /= p3d[3]
+for pt1, pt2 in zip(pts1, pts2):
+    p3d = linear_triangulation(Rt0, Rt1, pts1, pts2)
     p3ds.append(p3d)
-
 p3ds = np.array(p3ds).T
-
-X = np.array([])
-Y = np.array([])
-Z = np.array([])
-
-X = np.concatenate((X, p3ds[0]))
-Y = np.concatenate((Y, p3ds[1]))
-Z = np.concatenate((Z, p3ds[2]))
