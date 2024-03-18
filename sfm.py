@@ -1,5 +1,7 @@
 import numpy as np
 import cv2
+import matplotlib.pyplot as plt
+
 # from calibrated_fivepoint import calibrated_fivepoint
 
 filename = './data/K.txt'
@@ -86,3 +88,11 @@ for pt1, pt2 in zip(pts1, pts2):
     p3d = linear_triangulation(Rt0, Rt1, pts1, pts2)
     p3ds.append(p3d)
 p3ds = np.array(p3ds).T
+
+X = np.array([])
+Y = np.array([])
+Z = np.array([])
+
+X = np.concatenate((X, p3ds[0]))
+Y = np.concatenate((Y, p3ds[1]))
+Z = np.concatenate((Z, p3ds[2]))
