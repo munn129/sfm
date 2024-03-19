@@ -30,9 +30,9 @@ def SIFT(img1, img2):
     res = cv2.drawMatches(img1, img1_kp, img2, img2_kp, sorted_matches, img2, flags=2) 
     
     # drwa matches
-    plt.figure(figsize=(15, 15))
-    plt.imshow(res)
-    plt.show()
+    # plt.figure(figsize=(15, 15))
+    # plt.imshow(res)
+    # plt.show()
     return matches_good, img1_kp, img2_kp
 
 #############################################################
