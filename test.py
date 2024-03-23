@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 img_path = './data/'
 img1_name = '0000.JPG'
 img2_name = '0001.JPG'
+img3_name = '0002.JPG'
 
 #################### Feature Extraction #####################
 # Load image
@@ -16,7 +17,6 @@ def load_image(img_path, img1_name, img2_name):
     img2 = cv2.cvtColor(img2,cv2.COLOR_BGR2RGB)
     return img1, img2
 
-
 # Find feature correspondence with SIFT
 def SIFT(img1, img2):
     sift = cv2.xfeatures2d.SIFT_create()
@@ -26,8 +26,8 @@ def SIFT(img1, img2):
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(img1_des, img2_des, k=2)
     matches_good = [m1 for m1, m2 in matches if m1.distance < 0.95*m2.distance]
-    sorted_matches = sorted(matches_good, key=lambda x: x.distance)
-    res = cv2.drawMatches(img1, img1_kp, img2, img2_kp, sorted_matches, img2, flags=2) 
+    # sorted_matches = sorted(matches_good, key=lambda x: x.distance)
+    # res = cv2.drawMatches(img1, img1_kp, img2, img2_kp, sorted_matches, img2, flags=2) 
     
     # drwa matches
     # plt.figure(figsize=(15, 15))
