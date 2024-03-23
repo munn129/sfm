@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # load image
 def load_image(image_path) -> list:
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    if img is None: raise Exception(f'read {image_path} is failed')
+    if img is None: raise Exception(f'reading {image_path} is failed')
     
     return img
 
