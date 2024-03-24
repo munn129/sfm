@@ -13,7 +13,6 @@ growing step을 어떻게 해야할 지 모르겠음.
 - 그냥 1~2 매칭의 2 이미지 포인트(3차원)와 2~3 매칭의 2이미지 포인트를 알아야 함
 '''
 
-
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -83,6 +82,9 @@ for id, match in enumerate(matches):
 pixel_1 = matches_optmz[0][0]
 pixel_2 = matches_optmz[0][1]
 E, _ = cv2.findEssentialMat(pixel_1, pixel_2, K, method=cv2.RANSAC)
+
+for p in pixel_1:
+    colors.append(images[0][int(p[0])][int(p[1])])
 
 # decompose essential matrix -> camera extrinsic
 camera_extrinsic = np.array([[]])
@@ -156,6 +158,7 @@ mask_pres = np.zeros(len(matches_optmz[1][0]))
 # 1~2사이에 매칭된 이미지2의 특징점이 2~3사이에 매칭된 이미지2의 특징점이랑 같을 때
 tmp_3d = []
 tmp_2d = []
+
 for i, point in enumerate(matches_optmz[0][1]):
     if np.any(np.all(np.isclose(matches_optmz[1][0], point), axis=1)):
         mask_prev[i] = 1
@@ -166,4 +169,27 @@ for i, point in enumerate(matches_optmz[1][0]):
         mask_pres[i] = 1
         tmp_2d.append(point)
 
-visualize_3d(np.array(init_structure).T)
+# visualize_3d(np.array(init_structure).T)
+
+def pts2ply(pts, color):
+    f = open('result.ply','w')
+    f.write('ply\n')
+    f.write('format ascii 1.0\n')
+    f.write('element vertex {}\n'.format(pts.shape[0]))
+    
+    f.write('property float x\n')
+    f.write('property float y\n')
+    f.write('property float z\n')
+    
+    f.write('property uchar red\n')
+    f.write('property uchar green\n')
+    f.write('property uchar blue\n')
+    
+    f.write('end_header\n')
+    
+    for pt, c in zip(pts, color): 
+        # f.write('{} {} {} 255 255 255\n'.format(pt[0],pt[1],pt[2]))
+        f.write('{} {} {} {} {} {}\n'.format(pt[0],pt[1],pt[2],c[0],c[1],c[2]))
+    f.close()
+
+pts2ply(np.array(init_structure), colors)
