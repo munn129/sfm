@@ -1,3 +1,19 @@
+'''
+지금 고민인거
+growing step을 어떻게 해야할 지 모르겠음.
+
+1번째 2번째는 ㅇㅋ
+근데 3번째는?
+
+- 일단 2d3d matching하고(1번째~2번째 매칭의 2번째 디스크립터 <-> 2번째~3번째 매칭의 2번째 디스크립터)
+- 근데 생각해보니까 위에거 아닌듯; 
+- 일단 solvepnp를 쓰려면 초기 3차원 점들이랑 3번째 이미지가 매칭이 되어야 함
+- 3차원 좌표랑 그 3차원 좌표에 이미지에 투영된 2차원 좌표를 알고 있어야 함
+- 그럼 디스크립터는 필요 없고...
+- 그냥 1~2 매칭의 2 이미지 포인트(3차원)와 2~3 매칭의 2이미지 포인트를 알아야 함
+'''
+
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -43,16 +59,30 @@ for idx, val in enumerate(descriptors):
 
 print('knn match and Lowe\'s ratio test are done' )
 
+# matches optimization with epipolar constraint
+# matches_optmz = [[query_pixel, train_pixel], ... ]
+matches_optmz = []
+# match된 descriptor의 배열, 즉 3차원 포인트가 될 2차원 디스크립터 [i][1]와 새로운 이미지의 디스크립터[i+1][0] 
+# 이 둘의 매칭으로 3d2d matching 구현
+# matches_des = []
+for id, match in enumerate(matches):
+    query_idx = [i.queryIdx for i in match]
+    train_idx = [i.trainIdx for i in match]
+    
+    query_pixel = np.float32([keypoints[id][i].pt for i in query_idx])
+    train_pixel = np.float32([keypoints[id + 1][i].pt for i in train_idx])
+
+    # query_des = np.array([descriptors[id][i] for i in query_idx])
+    # train_des = np.array([descriptors[id + 1][i] for i in train_idx])
+
+    _, mask = cv2.findEssentialMat(query_pixel, train_pixel, K, method=cv2.RANSAC)
+    matches_optmz.append((query_pixel[mask.ravel() == 1], train_pixel[mask.ravel() == 1]))
+    # matches_des.append((query_des[mask.ravel() == 1], train_des[mask.ravel() == 1]))
+
 # Initialization step
-query_idx = [match.queryIdx for match in matches[0]]
-train_idx = [match.trainIdx for match in matches[0]]
-
-pixel_1 = np.float32([keypoints[0][i].pt for i in query_idx])
-pixel_2 = np.float32([keypoints[1][i].pt for i in train_idx])
-
-E, mask = cv2.findEssentialMat(pixel_1, pixel_2, K, method=cv2.RANSAC)
-pixel_1 = pixel_1[mask.ravel() == 1]
-pixel_2 = pixel_2[mask.ravel() == 1]
+pixel_1 = matches_optmz[0][0]
+pixel_2 = matches_optmz[0][1]
+E, _ = cv2.findEssentialMat(pixel_1, pixel_2, K, method=cv2.RANSAC)
 
 # decompose essential matrix -> camera extrinsic
 camera_extrinsic = np.array([[]])
@@ -101,10 +131,10 @@ def triangulation(Rt0, Rt1, p1, p2):
     
     return Vt[3, 0:3]/Vt[3,3]
 
-points = []
+init_structure = []
 for p1, p2 in zip(h_pixel_1, h_pixel_2):
     point = triangulation(Rt0, Rt1, p1, p2)
-    points.append(point)
+    init_structure.append(point)
 
 def visualize_3d(p3ds):
     X = np.array([])
@@ -119,4 +149,21 @@ def visualize_3d(p3ds):
     ax.scatter3D(X, Y, Z, c='b', marker='o')
     plt.show()
 
-visualize_3d(np.array(points).T)
+# 둘이 같은 이미지에서 나왔지만 서로 다른 이미지와 매칭된 특징점들임
+mask_prev = np.zeros(len(matches_optmz[0][1]))
+mask_pres = np.zeros(len(matches_optmz[1][0]))
+
+# 1~2사이에 매칭된 이미지2의 특징점이 2~3사이에 매칭된 이미지2의 특징점이랑 같을 때
+tmp_3d = []
+tmp_2d = []
+for i, point in enumerate(matches_optmz[0][1]):
+    if np.any(np.all(np.isclose(matches_optmz[1][0], point), axis=1)):
+        mask_prev[i] = 1
+        tmp_3d.append(point)
+
+for i, point in enumerate(matches_optmz[1][0]):
+    if np.any(np.all(np.isclose(matches_optmz[0][1], point), axis=1)):
+        mask_pres[i] = 1
+        tmp_2d.append(point)
+
+visualize_3d(np.array(init_structure).T)
