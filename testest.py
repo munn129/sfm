@@ -90,14 +90,14 @@ Rt1 = K @ camera_extrinsic
 
 # triangulation
 def triangulation(Rt0, Rt1, p1, p2):
-    A = np.array([
+    tmp = np.array([
         p1[1]*Rt0[2,:] - Rt0[1,:],
         -(p1[0]*Rt0[2,:] - Rt0[0,:]),
         p2[1]*Rt1[2,:] - Rt1[1,:],
         -(p2[0]*Rt1[2,:] - Rt1[0,:])
     ]).reshape((4, 4))
     
-    _, _, Vt = np.linalg.svd(A.T @ A)
+    _, _, Vt = np.linalg.svd(tmp.T @ tmp)
     
     return Vt[3, 0:3]/Vt[3,3]
 
@@ -105,8 +105,6 @@ points = []
 for p1, p2 in zip(h_pixel_1, h_pixel_2):
     point = triangulation(Rt0, Rt1, p1, p2)
     points.append(point)
-
-points = np.array(points).T
 
 def visualize_3d(p3ds):
     X = np.array([])
@@ -118,7 +116,7 @@ def visualize_3d(p3ds):
 
     fig = plt.figure(figsize=(15,15))
     ax = plt.axes(projection='3d')
-    ax.scatter3D(X, Y, Z, c='b', marker='o') 
+    ax.scatter3D(X, Y, Z, c='b', marker='o')
     plt.show()
 
-visualize_3d(points)
+visualize_3d(np.array(points).T)
