@@ -14,20 +14,8 @@ with open('./data/K.txt', 'r') as file:
         K.append(row)
 K = np.array(K)
 
-########## debug ##########
-# img1 = cv2.imread('./data/0000.JPG')
-# img2 = cv2.imread('./data/0001.JPG')
-# img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-# img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
-
-
-
 # sift detect
 sift = cv2.xfeatures2d.SIFT_create()
-
-###########################################
-# kp1, des1 = sift.detectAndCompute(img1, None)
-# kp2, des2 = sift.detectAndCompute(img2, None)
 
 keypoints = []
 descriptors = []
@@ -43,15 +31,6 @@ print('keypoints and descriptors are extracted')
 
 # knn match and lowe's SIFT ratio test
 bf = cv2.BFMatcher()
-
-######################################
-# ms = bf.knnMatch(des1, des2, k=2)
-# ms_g = [m1 for m1, m2 in ms if m1.distance < 0.8 * m2.distance]
-# q_i = [m.qeuryIdx for m in ms_g]
-# t_i = [m.trainIdx for m in ms_g]
-# p1 = np.float32([kp1[i].pt for i in q_i])
-# p2 = np.float32([kp2[i].pt for i in t_i])
-
 
 # matches[0] -> between descriptor[0] and descriptor[1]
 # len(matches) == len(descriptor) - 1
@@ -111,14 +90,14 @@ Rt1 = K @ camera_extrinsic
 
 # triangulation
 def triangulation(Rt0, Rt1, p1, p2):
-    A = [p1[1]*Rt0[2,:] - Rt0[1,:],
-         -(p1[0]*Rt0[2,:] - Rt0[0,:]),
-         p2[1]*Rt1[2,:] - Rt1[1,:],
-         -(p2[0]*Rt1[2,:] - Rt1[0,:])]
+    A = np.array([
+        p1[1]*Rt0[2,:] - Rt0[1,:],
+        -(p1[0]*Rt0[2,:] - Rt0[0,:]),
+        p2[1]*Rt1[2,:] - Rt1[1,:],
+        -(p2[0]*Rt1[2,:] - Rt1[0,:])
+    ]).reshape((4, 4))
     
-    A = np.array(A).reshape((4,4))
-    AA = A.T @ A
-    _, _, Vt = np.linalg.svd(AA)
+    _, _, Vt = np.linalg.svd(A.T @ A)
     
     return Vt[3, 0:3]/Vt[3,3]
 
