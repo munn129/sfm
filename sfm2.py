@@ -9,7 +9,7 @@ import config
 import collections
 import numpy as np
 import matplotlib.pyplot as plt
-from mayavi import mlab
+# from mayavi import mlab
 from scipy.linalg import lstsq
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.optimize import least_squares
@@ -318,8 +318,8 @@ def main():
     # np.save('structure.npy', structure)
     # np.save('colors.npy', colors)
     
-    # fig(structure,colors)
-    fig_v1(structure)
+    fig(structure,colors)
+    # fig_v1(structure)
     # fig_v2(structure, colors)
    
 if __name__ == '__main__':

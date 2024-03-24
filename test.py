@@ -25,7 +25,7 @@ def SIFT(img1, img2):
 
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(img1_des, img2_des, k=2)
-    matches_good = [m1 for m1, m2 in matches if m1.distance < 0.95*m2.distance]
+    matches_good = [m1 for m1, m2 in matches if m1.distance < 0.8 * m2.distance]
     # sorted_matches = sorted(matches_good, key=lambda x: x.distance)
     # res = cv2.drawMatches(img1, img1_kp, img2, img2_kp, sorted_matches, img2, flags=2) 
     
