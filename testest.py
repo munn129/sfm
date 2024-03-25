@@ -1,19 +1,9 @@
-'''
-지금 고민인거
-growing step을 어떻게 해야할 지 모르겠음.
-
-1번째 2번째는 ㅇㅋ
-근데 3번째는?
-
-- global descriptor list를 만들어서 그때 그때 매칭
-'''
-
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-dataset_root_dir = './data_copy/'
+dataset_root_dir = './data/'
 images_dir = [ f'{dataset_root_dir}{i:04d}.JPG' for i in range(0,32)]
 images = [cv2.cvtColor(cv2.imread(i), cv2.COLOR_BGR2RGB) for i in images_dir]
 
@@ -32,7 +22,7 @@ descriptors = []
 colors = []
 global_descriptors = []
 
-for image in tqdm(images, desc='sift detect and compute'):
+for image in tqdm(images[:10], desc='sift detect and compute'):
     kp, des = sift.detectAndCompute(image, None)
     
     keypoints.append(kp)
@@ -81,6 +71,8 @@ pixel_1 = matches_optmz[0][0]
 pixel_2 = matches_optmz[0][1]
 E, _ = cv2.findEssentialMat(pixel_1, pixel_2, K, method=cv2.RANSAC)
 
+########################################
+
 # query_idx = [i.queryIdx for i in match]
 # train_idx = [i.trainIdx for i in match]
 
@@ -101,8 +93,10 @@ E, _ = cv2.findEssentialMat(pixel_1, pixel_2, K, method=cv2.RANSAC)
 # pixel_2 = train_pixel
 
 # add color
-# for p in pixel_1:
-#     colors.append(images[0][int(p[0])][int(p[1])])
+for p in pixel_1:
+    colors.append(images[0][int(p[0])][int(p[1])])
+
+################################
 
 # decompose essential matrix -> camera extrinsic
 # 첫 번째 이미지와 두 번째 이미지 사이의 extrinsic
@@ -184,84 +178,80 @@ for p1, p2 in zip(h_pixel_1, h_pixel_2):
 # 1~2 사이는 mask로 필요하고(3차원 포인트에서 뽑아야 됨)
 # 2~3 사이는 그 점들만 있으면 된다.
 
-# g_mask = []
-# points_2to3 =[]
+g_mask = []
+points_2to3 =[]
 
-# for i in matches_optmz[0][1]:
-#     if i in matches_optmz[1][0]:
-#         g_mask.append(1)
-#         points_2to3.append(i)
-#     else:
-#         g_mask.append(0)
+for i in matches_optmz[0][1]:
+    if i in matches_optmz[1][0]:
+        g_mask.append(1)
+        points_2to3.append(i)
+    else:
+        g_mask.append(0)
 
-# # 1~2단계에서도 매칭되고, 2~3 단계에서도 매칭된 3차원 포인트
-# structure_for_matching = np.array([structure[i] for i, val in enumerate(g_mask) if val == 1])
-# points_2to3 =- np.array(points_2to3)
+# 1~2단계에서도 매칭되고, 2~3 단계에서도 매칭된 3차원 포인트
+structure_for_matching = np.array([structure[i] for i, val in enumerate(g_mask) if val == 1])
+points_2to3 =- np.array(points_2to3)
 
-# retval, r, t, inliers = cv2.solvePnPRansac(structure_for_matching, points_2to3, K, None)
-# R, _ = cv2.Rodrigues(r)
-# h_Rt_mat = np.hstack((R, t))
-# h_Rt_mat = K @ h_Rt_mat
-# h_Rt_mat = np.vstack((h_Rt_mat, [0, 0, 0, 1]))
+retval, r, t, inliers = cv2.solvePnPRansac(structure_for_matching, points_2to3, K, None)
+R, _ = cv2.Rodrigues(r)
+h_Rt_mat = np.hstack((R, t))
+h_Rt_mat = K @ h_Rt_mat
+h_Rt_mat = np.vstack((h_Rt_mat, [0, 0, 0, 1]))
 
-# # 이제 여기서 2~3 매칭된 점을 삼각 측량
-# h_pixel_1 = []
-# h_pixel_2 = []
+# 이제 여기서 2~3 매칭된 점을 삼각 측량
+h_pixel_1 = []
+h_pixel_2 = []
 
-# for p1, p2 in zip(matches_optmz[1][0], matches_optmz[1][1]):
-#     h_pixel_1.append(np.append(p1.flatten(), 1))
-#     h_pixel_2.append(np.append(p2.flatten(), 1))
+for p1, p2 in zip(matches_optmz[1][0], matches_optmz[1][1]):
+    h_pixel_1.append(np.append(p1.flatten(), 1))
+    h_pixel_2.append(np.append(p2.flatten(), 1))
 
-# h_pixel_1 = np.array(h_pixel_1)
-# h_pixel_2 = np.array(h_pixel_2)
+h_pixel_1 = np.array(h_pixel_1)
+h_pixel_2 = np.array(h_pixel_2)
 
-# for p1, p2 in zip(h_pixel_1, h_pixel_2):
-#     point = triangulation(Rt1, h_Rt_mat, p1, p2)
-#     structure.append(point)
+for p1, p2 in zip(h_pixel_1, h_pixel_2):
+    point = triangulation(Rt1, h_Rt_mat, p1, p2)
+    structure.append(point)
     
 #################################################
 
-for idx in range(len(matches_optmz) - 1):
-    g_mask = []
-    points_2to3 = []
 
-    # 직전 매칭의 1번째 이미지와 현재 매칭의 0번째 매칭
-    for i in matches_optmz[idx][1]:
-        if i in matches_optmz[idx + 1][0]:
-            g_mask.append(1)
-            points_2to3.append(i)
-        else:
-            g_mask.append(0)
+# for idx in tqdm(range(len(matches_optmz) - 1), desc = 'growing step'):
+#     g_mask = []
+#     points_2to3 = []
 
-    # 1~2단계에서도 매칭되고, 2~3 단계에서도 매칭된 3차원 포인트
-    structure_for_matching = np.array([structure[i] for i, val in enumerate(g_mask) if val == 1])
-    points_2to3 =- np.array(points_2to3)
+#     # 직전 매칭의 1번째 이미지와 현재 매칭의 0번째 매칭
+#     for i in matches_optmz[idx][1]:
+#         if i in matches_optmz[idx + 1][0]:
+#             g_mask.append(1)
+#             points_2to3.append(i)
+#         else:
+#             g_mask.append(0)
 
-    retval, r, t, inliers = cv2.solvePnPRansac(structure_for_matching, points_2to3, K, None)
-    R, _ = cv2.Rodrigues(r)
-    h_Rt_mat = np.hstack((R, t))
-    h_Rt_mat = K @ h_Rt_mat
-    h_Rt_mat = np.vstack((h_Rt_mat, [0, 0, 0, 1]))
+#     # 1~2단계에서도 매칭되고, 2~3 단계에서도 매칭된 3차원 포인트
+#     structure_for_matching = np.array([structure[i] for i, val in enumerate(g_mask) if val == 1])
+#     points_2to3 =- np.array(points_2to3)
 
-    # 이제 여기서 2~3 매칭된 점을 삼각 측량
-    h_pixel_1 = []
-    h_pixel_2 = []
+#     _, r, t, _ = cv2.solvePnPRansac(structure_for_matching, points_2to3, K, None)
+#     R, _ = cv2.Rodrigues(r)
+#     h_Rt_mat = np.hstack((R, t))
+#     h_Rt_mat = K @ h_Rt_mat
+#     h_Rt_mat = np.vstack((h_Rt_mat, [0, 0, 0, 1]))
 
-    for p1, p2 in zip(matches_optmz[idx+ 1 ][0], matches_optmz[idx + 1][1]):
-        h_pixel_1.append(np.append(p1.flatten(), 1))
-        h_pixel_2.append(np.append(p2.flatten(), 1))
+#     # 이제 여기서 2~3 매칭된 점을 삼각 측량
+#     h_pixel_1 = []
+#     h_pixel_2 = []
 
-    h_pixel_1 = np.array(h_pixel_1)
-    h_pixel_2 = np.array(h_pixel_2)
+#     for p1, p2 in zip(matches_optmz[idx+ 1 ][0], matches_optmz[idx + 1][1]):
+#         h_pixel_1.append(np.append(p1.flatten(), 1))
+#         h_pixel_2.append(np.append(p2.flatten(), 1))
 
-    for p1, p2 in zip(h_pixel_1, h_pixel_2):
-        point = triangulation(Rt1, h_Rt_mat, p1, p2)
-        structure.append(point)
+#     h_pixel_1 = np.array(h_pixel_1)
+#     h_pixel_2 = np.array(h_pixel_2)
 
-
-
-
-
+#     for p1, p2 in zip(h_pixel_1, h_pixel_2):
+#         point = triangulation(Rt1, h_Rt_mat, p1, p2)
+#         structure.append(point)
 
 
 #################################################################
@@ -279,10 +269,10 @@ def visualize_3d(p3ds):
     ax.scatter3D(X, Y, Z, c='b', marker='o')
     plt.show()
 
-visualize_3d(np.array(structure).T)
+# visualize_3d(np.array(structure).T)
 
-def pts2ply(pts, color):
-    f = open('result.ply','w')
+def pts2ply(pts):
+    f = open('101010101010101010.ply','w')
     f.write('ply\n')
     f.write('format ascii 1.0\n')
     f.write('element vertex {}\n'.format(pts.shape[0]))
@@ -297,9 +287,13 @@ def pts2ply(pts, color):
     
     f.write('end_header\n')
     
-    for pt, c in zip(pts, color): 
-        # f.write('{} {} {} 255 255 255\n'.format(pt[0],pt[1],pt[2]))
-        f.write('{} {} {} {} {} {}\n'.format(pt[0],pt[1],pt[2],c[0],c[1],c[2]))
+    for pt in pts: 
+        f.write('{} {} {} 100 100 100\n'.format(pt[0],pt[1],pt[2]))
+        # f.write('{} {} {} {} {} {}\n'.format(pt[0],pt[1],pt[2],c[0],c[1],c[2]))
     f.close()
 
-# pts2ply(np.array(structure), colors)
+# tmp = []
+# for i in structure:
+#     if i[0] < 0: tmp.append(i)
+
+pts2ply(np.array(structure))
