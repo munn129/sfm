@@ -267,6 +267,27 @@ def fig_v2(structure, colors):
             mode = 'point', name = 'dinosaur', color = colors[i])
 
     mlab.show()
+
+def pts2ply(pts, color):
+    f = open('resultdd.ply','w')
+    f.write('ply\n')
+    f.write('format ascii 1.0\n')
+    f.write('element vertex {}\n'.format(pts.shape[0]))
+    
+    f.write('property float x\n')
+    f.write('property float y\n')
+    f.write('property float z\n')
+    
+    f.write('property uchar red\n')
+    f.write('property uchar green\n')
+    f.write('property uchar blue\n')
+    
+    f.write('end_header\n')
+    
+    for pt, c in zip(pts, color): 
+        # f.write('{} {} {} 255 255 255\n'.format(pt[0],pt[1],pt[2]))
+        f.write('{} {} {} {} {} {}\n'.format(pt[0],pt[1],pt[2],int(c[0]),int(c[1]),int(c[2])))
+    f.close()
     
 def main():
     imgdir = config.image_dir
@@ -318,9 +339,10 @@ def main():
     # np.save('structure.npy', structure)
     # np.save('colors.npy', colors)
     
-    fig(structure,colors)
+    # fig(structure,colors)
     # fig_v1(structure)
     # fig_v2(structure, colors)
+    pts2ply(structure, colors)
    
 if __name__ == '__main__':
     main()
